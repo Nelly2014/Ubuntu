@@ -51,7 +51,7 @@ textarea{width:100%;min-height:64px;margin-top:8px;padding:8px;resize:vertical}
 <div class="wrap">
   <h1>UbuntuVoice</h1>
   <p class="sub">Speak, and the other person hears or reads it in their language.</p>
-  <div class="warn" role="note"><b>Support tool only.</b> AI translation can be wrong. For consent, diagnoses, medication doses, arrests, rights or court matters, use a qualified interpreter. Check the English back-translation shown under each message. Conversations are not saved on this device. The service logs only which access code was used, the languages and message length.</div>
+  <div class="warn" role="note"><b>Support tool only.</b> AI translation can be wrong. For consent, diagnoses, medication doses, arrests, rights or court matters, use a qualified interpreter. Check the English back-translation shown under each message. Conversations are not saved on this device. The service logs only the languages and message length.</div>
 
   <div class="ctx">
     <label for="ctx">Setting</label>
@@ -115,9 +115,14 @@ const API_BASE=(window.UV_API||"").replace(/\/$/,"");
 async function api(path,body){
   let code=sessionStorage.getItem("uvCode")||"";
   for(let i=0;i<2;i++){
-    if(!code){code=(prompt("Enter your staff access code")||"").trim();if(!code)throw {code:"not_granted"};sessionStorage.setItem("uvCode",code)}
-    const r=await fetch(API_BASE+path,{method:"POST",headers:{"Content-Type":"application/json","x-access-code":code},body:JSON.stringify(body)});
-    if(r.status===401){sessionStorage.removeItem("uvCode");code="";continue}
+    const headers={"Content-Type":"application/json"};
+    if(code)headers["x-access-code"]=code;
+    const r=await fetch(API_BASE+path,{method:"POST",headers,body:JSON.stringify(body)});
+    if(r.status===401){
+      code=(prompt("Enter your staff access code")||"").trim();
+      if(!code)throw {code:"not_granted"};
+      sessionStorage.setItem("uvCode",code);continue;
+    }
     if(r.status===429)throw {code:"rate_limited"};
     if(!r.ok)throw {code:"failed"};
     return r.json();

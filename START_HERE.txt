@@ -37,7 +37,7 @@ C. MAKE TRANSLATION WORK (the page loads without this, but Translate will fail)
    4. In PowerShell, inside the worker folder:
         npx wrangler login
         npx wrangler secret put ANTHROPIC_API_KEY
-        npx wrangler secret put ACCESS_CODES        (e.g. clinic-giraffe-42,legal-otter-19)
+        (ACCESS_CODES is optional now. Skip it and nobody is asked for a code.)
    5. Cloudflare gives the worker a URL like https://ubuntuvoice-api.<something>.workers.dev
       Edit config.js on github.com and put it in window.UV_API. Commit.
    6. Reload the live page, type a sentence, press Translate, enter one of your access codes.

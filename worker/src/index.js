@@ -59,15 +59,21 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { status: ok ? 204 : 403, headers: h });
     if (req.method !== "POST" || !["/api/translate", "/api/simplify"].includes(url.pathname)) return reply({ error: "not found" }, 404, h);
     if (!ok) return reply({ error: "origin not allowed" }, 403, h);
-    if (!env.ANTHROPIC_API_KEY || !env.ACCESS_CODES) return reply({ error: "not configured" }, 500, h);
+    if (!env.ANTHROPIC_API_KEY) return reply({ error: "not configured" }, 500, h);
 
-    const given = await sha(req.headers.get("x-access-code") || "");
+    const codes = (env.ACCESS_CODES || "").split(",").map((s) => s.trim()).filter(Boolean);
     let userId = null;
-    for (const c of env.ACCESS_CODES.split(",").map((s) => s.trim()).filter(Boolean)) {
-      const hash = await sha(c);
-      if (same(hash, given)) userId = hex(hash).slice(0, 8);
+    if (codes.length === 0) {
+      // Open mode: no access code needed. Limit per visitor address instead.
+      userId = "open:" + (req.headers.get("CF-Connecting-IP") || "unknown");
+    } else {
+      const given = await sha(req.headers.get("x-access-code") || "");
+      for (const c of codes) {
+        const hash = await sha(c);
+        if (same(hash, given)) userId = hex(hash).slice(0, 8);
+      }
+      if (!userId) { audit({ ev: "auth_fail" }); return reply({ error: "unauthorised" }, 401, h); }
     }
-    if (!userId) { audit({ ev: "auth_fail" }); return reply({ error: "unauthorised" }, 401, h); }
     if (limited(userId)) return reply({ error: "rate limited" }, 429, h);
 
     let body;
@@ -90,7 +96,7 @@ Reply with JSON only, no other text, in this exact shape:
 {"translation":"...","back":"the translation rendered back into English, literally","caution":"one short sentence if any term, dose, number, name or legal phrase may be mistranslated or ambiguous, else empty string"}`;
       const o = parseJson(await claude(env, system, text));
       if (!o.translation) throw new Error("empty");
-      audit({ ev: "translate", user: userId, from, to, setting, chars: text.length, ...(env.LOG_CONTENT === "true" ? { text, out: o.translation } : {}) });
+      audit({ ev: "translate", user: userId.startsWith("open:") ? "open" : userId, from, to, setting, chars: text.length, ...(env.LOG_CONTENT === "true" ? { text, out: o.translation } : {}) });
       return reply({ translation: String(o.translation), back: String(o.back || ""), caution: String(o.caution || "") }, 200, h);
     } catch (e) {
       audit({ ev: "error", user: userId, err: String(e.message).slice(0, 80) });
