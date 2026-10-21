@@ -113,23 +113,36 @@ function hint(){
 
 const API_BASE=(window.UV_API||"").replace(/\/$/,"");
 async function api(path,body){
+  if(!API_BASE||API_BASE.includes("YOUR-SUBDOMAIN"))throw {code:"no_worker"};
   let code=sessionStorage.getItem("uvCode")||"";
   for(let i=0;i<2;i++){
     const headers={"Content-Type":"application/json"};
     if(code)headers["x-access-code"]=code;
-    const r=await fetch(API_BASE+path,{method:"POST",headers,body:JSON.stringify(body)});
+    let r;
+    try{r=await fetch(API_BASE+path,{method:"POST",headers,body:JSON.stringify(body)})}catch(e){throw {code:"network"}}
     if(r.status===401){
       code=(prompt("Enter your staff access code")||"").trim();
       if(!code)throw {code:"not_granted"};
       sessionStorage.setItem("uvCode",code);continue;
     }
     if(r.status===429)throw {code:"rate_limited"};
-    if(!r.ok)throw {code:"failed"};
+    if(!r.ok)throw {code:"failed",status:r.status};
     return r.json();
   }
   throw {code:"not_granted"};
 }
-function fail(e){status(e&&e.code==="not_granted"?"Access code missing or not accepted.":e&&e.code==="rate_limited"?"Too many requests. Wait a moment and try again.":"Request failed. Check your connection and try again.",true)}
+function fail(e){
+  const c=e&&e.code,st=e&&e.status;
+  status(
+    c==="no_worker"?"The worker address in config.js is not set yet. Put your Cloudflare Worker address in window.UV_API.":
+    c==="network"?"Cannot reach the translation service. The worker may not be deployed, or the address in config.js is wrong.":
+    c==="not_granted"?"Access code missing or not accepted.":
+    c==="rate_limited"?"Too many requests. Wait a moment and try again.":
+    st===403?"The worker refused this website. Set ALLOWED_ORIGIN in wrangler.toml to https://nelly2014.github.io and redeploy.":
+    st===500?"The worker has no Anthropic API key. Run: npx wrangler secret put ANTHROPIC_API_KEY":
+    st===502?"The worker could not get a translation from Anthropic. Check the API key and that your account has credit.":
+    st?`Request failed (code ${st}).`:"Request failed. Check your connection and try again.",true);
+}
 async function translate(side,text){
   text=text.trim();if(!text||busy)return;
   const from=L($("lang"+side).value),to=L($("lang"+(side==="A"?"B":"A")).value);
