@@ -1,0 +1,45 @@
+UbuntuVoice - get it LIVE on GitHub Pages
+=========================================
+Your repo: Nelly2014/Ubuntu     Live address: https://nelly2014.github.io/Ubuntu/
+
+A. PUT THESE FILES IN THE REPO (replace the old ones)
+   1. Open your local Ubuntu repo folder.
+   2. Delete EVERYTHING in it except the .git folder (and .gitattributes if you like).
+      That removes the old server.js, public, Dockerfile, package.json, site, etc.
+   3. Copy everything from inside the ubuntuvoice-live folder into the repo folder.
+      Turn on View > Show > Hidden items so .github and .nojekyll copy too.
+      You must see index.html, config.js, worker, .github at the TOP of the repo.
+   4. In PowerShell inside the repo folder:
+        git add -A
+        git commit -m "UbuntuVoice live"
+        git push
+   5. On github.com, check that index.html is listed at the top of the repo.
+      If you still see server.js or a README about "self-hosted", the old files are still there.
+
+B. TURN ON THE LIVE SITE
+   1. Repo is Public (Settings > General > Danger Zone > Change visibility).
+   2. Settings > Pages > Build and deployment:
+        Source: Deploy from a branch
+        Branch: main      Folder: / (root)      Save
+   3. Wait 1-2 minutes, refresh Settings > Pages. It shows "Your site is live at ...".
+   4. Open https://nelly2014.github.io/Ubuntu/  -> you should see the UbuntuVoice page
+      with two language panels (not a README).
+
+C. MAKE TRANSLATION WORK (the page loads without this, but Translate will fail)
+   The Anthropic key cannot live on GitHub, so a free Cloudflare Worker holds it.
+   1. cloudflare.com: free account. Copy your Account ID.
+      Create an API token with the "Edit Cloudflare Workers" template.
+   2. GitHub repo > Settings > Secrets and variables > Actions > add:
+        CLOUDFLARE_API_TOKEN   and   CLOUDFLARE_ACCOUNT_ID
+   3. Edit worker/wrangler.toml on github.com and set:
+        ALLOWED_ORIGIN = "https://nelly2014.github.io"
+      Commit. The Actions tab should show a green "Deploy API to Cloudflare Workers".
+   4. In PowerShell, inside the worker folder:
+        npx wrangler login
+        npx wrangler secret put ANTHROPIC_API_KEY
+        npx wrangler secret put ACCESS_CODES        (e.g. clinic-giraffe-42,legal-otter-19)
+   5. Cloudflare gives the worker a URL like https://ubuntuvoice-api.<something>.workers.dev
+      Edit config.js on github.com and put it in window.UV_API. Commit.
+   6. Reload the live page, type a sentence, press Translate, enter one of your access codes.
+
+Stuck? Tell Claude the step letter and number, plus any red error text.

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>UbuntuVoice</title>
+<script src="config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f3f1ea;--panel:#fff;--ink:#1b2a2a;--mute:#5c6b6b;--line:#cfd6d2;--a:#0b6e4f;--b:#b4531a;--warn:#fff1c2;--warn-ink:#4a3a00;--bad:#b3261e;
@@ -50,7 +51,7 @@ textarea{width:100%;min-height:64px;margin-top:8px;padding:8px;resize:vertical}
 <div class="wrap">
   <h1>UbuntuVoice</h1>
   <p class="sub">Speak, and the other person hears or reads it in their language.</p>
-  <div class="warn" role="note"><b>Support tool only.</b> AI translation can be wrong. For consent, diagnoses, medication doses, arrests, rights or court matters, use a qualified interpreter. Check the English back-translation shown under each message. Conversations are not saved on this device. The server logs only who used it, the languages and message length.</div>
+  <div class="warn" role="note"><b>Support tool only.</b> AI translation can be wrong. For consent, diagnoses, medication doses, arrests, rights or court matters, use a qualified interpreter. Check the English back-translation shown under each message. Conversations are not saved on this device. The service logs only which access code was used, the languages and message length.</div>
 
   <div class="ctx">
     <label for="ctx">Setting</label>
@@ -110,11 +111,12 @@ function hint(){
 }
 ["langA","langB"].forEach(id=>$(id).addEventListener("change",hint));setTimeout(hint,600);
 
+const API_BASE=(window.UV_API||"").replace(/\/$/,"");
 async function api(path,body){
   let code=sessionStorage.getItem("uvCode")||"";
   for(let i=0;i<2;i++){
     if(!code){code=(prompt("Enter your staff access code")||"").trim();if(!code)throw {code:"not_granted"};sessionStorage.setItem("uvCode",code)}
-    const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json","x-access-code":code},body:JSON.stringify(body)});
+    const r=await fetch(API_BASE+path,{method:"POST",headers:{"Content-Type":"application/json","x-access-code":code},body:JSON.stringify(body)});
     if(r.status===401){sessionStorage.removeItem("uvCode");code="";continue}
     if(r.status===429)throw {code:"rate_limited"};
     if(!r.ok)throw {code:"failed"};
