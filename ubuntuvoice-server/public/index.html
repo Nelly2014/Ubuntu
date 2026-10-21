@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UbuntuVoice</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f1ea;--panel:#fff;--ink:#1b2a2a;--mute:#5c6b6b;--line:#cfd6d2;--a:#0b6e4f;--b:#b4531a;--warn:#fff1c2;--warn-ink:#4a3a00;--bad:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181a;--panel:#18242a;--ink:#e8f0ee;--mute:#9fb2ae;--line:#2f4146;--a:#4fd1a0;--b:#f2a46b;--warn:#3a3210;--warn-ink:#ffe9a3;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 "Atkinson Hyperlegible",system-ui,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:12px}
+h1{font-size:28px;margin:4px 0 0}
+.sub{color:var(--mute);margin:0 0 10px}
+.warn{background:var(--warn);color:var(--warn-ink);border-radius:10px;padding:8px 12px;font-size:15px;margin-bottom:12px}
+.ctx{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.ctx label{font-weight:700}
+select,button,textarea{font:inherit;color:var(--ink);background:var(--panel);border:2px solid var(--line);border-radius:10px}
+select{padding:8px;min-height:44px}
+button{cursor:pointer;min-height:44px;padding:6px 14px;font-weight:700}
+button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--a);outline-offset:2px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.cols{grid-template-columns:1fr}}
+.p{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:12px}
+.p.A{border-top:8px solid var(--a)}.p.B{border-top:8px solid var(--b)}
+.p h2{font-size:18px;margin:0 0 8px}
+.mic{width:100%;min-height:64px;font-size:19px;color:#fff;border:0}
+.A .mic{background:var(--a)}.B .mic{background:var(--b)}
+.A .mic{color:#06251b}@media(prefers-color-scheme:dark){.B .mic{color:#2b1200}}
+.mic.on{outline:4px solid var(--bad)}
+textarea{width:100%;min-height:64px;margin-top:8px;padding:8px;resize:vertical}
+.row{display:flex;gap:8px;margin-top:8px}.row button{flex:1}
+.hint{color:var(--mute);font-size:14px;margin:6px 0 0}
+#log{margin-top:14px}
+.msg{background:var(--panel);border:2px solid var(--line);border-left:8px solid var(--a);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.msg.B{border-left-color:var(--b)}
+.src{color:var(--mute);font-size:15px}
+.out{font-size:24px;line-height:1.35;margin:4px 0;font-weight:700}
+.bk{font-size:15px;color:var(--mute)}
+.caut{margin-top:6px;background:var(--warn);color:var(--warn-ink);border-radius:8px;padding:6px 10px;font-size:15px}
+.status{min-height:24px;color:var(--mute);font-size:15px;margin-top:6px}
+.err{color:var(--bad);font-weight:700}
+.tools{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>UbuntuVoice</h1>
+  <p class="sub">Speak, and the other person hears or reads it in their language.</p>
+  <div class="warn" role="note"><b>Support tool only.</b> AI translation can be wrong. For consent, diagnoses, medication doses, arrests, rights or court matters, use a qualified interpreter. Check the English back-translation shown under each message. Conversations are not saved on this device. The server logs only who used it, the languages and message length.</div>
+
+  <div class="ctx">
+    <label for="ctx">Setting</label>
+    <select id="ctx"><option value="clinic">Clinic or hospital</option><option value="police">Police or legal</option><option value="general">General</option></select>
+    <label><input type="checkbox" id="auto" checked> Read translations aloud</label>
+  </div>
+
+  <div class="cols">
+    <section class="p A" aria-label="Person 1">
+      <h2>Person 1 speaks</h2>
+      <select id="langA" aria-label="Person 1 language"></select>
+      <button class="mic" id="micA" style="margin-top:8px">🎤 Tap to speak</button>
+      <textarea id="txtA" placeholder="Or type here" aria-label="Type for person 1"></textarea>
+      <div class="row"><button id="sendA">Translate</button></div>
+    </section>
+    <section class="p B" aria-label="Person 2">
+      <h2>Person 2 speaks</h2>
+      <select id="langB" aria-label="Person 2 language"></select>
+      <button class="mic" id="micB" style="margin-top:8px">🎤 Tap to speak</button>
+      <textarea id="txtB" placeholder="Or type here" aria-label="Type for person 2"></textarea>
+      <div class="row"><button id="sendB">Translate</button></div>
+    </section>
+  </div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+  <p class="hint" id="hint"></p>
+
+  <div class="tools"><button id="simple">Simplify last message for a sign language interpreter</button><button id="clear">Clear conversation</button></div>
+  <div id="log" aria-live="polite"></div>
+  <p class="hint">Voice input and output depend on your browser and device. Some languages have no speech support yet; typing and reading always work. South African Sign Language is not recognised by this app: the simplify button writes short plain sentences an interpreter can sign.</p>
+</div>
+<script>
+const LANGS=[
+ ["en","English","en-ZA"],["zu","isiZulu","zu-ZA"],["xh","isiXhosa","xh-ZA"],["af","Afrikaans","af-ZA"],
+ ["nso","Sesotho sa Leboa (Sepedi)","nso-ZA"],["st","Sesotho","st-ZA"],["tn","Setswana","tn-ZA"],
+ ["ss","siSwati","ss-ZA"],["ve","Tshivenda","ve-ZA"],["ts","Xitsonga","ts-ZA"],["nr","isiNdebele","nr-ZA"]
+];
+const $=id=>document.getElementById(id);
+const L=c=>LANGS.find(l=>l[0]===c);
+["A","B"].forEach((s,i)=>{$("lang"+s).innerHTML=LANGS.map(l=>`<option value="${l[0]}">${l[1]}</option>`).join("");$("lang"+s).value=i?"zu":"en"});
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,sampleFn=null,last=null,busy=false,voices=[];
+function status(t,e){const s=$("status");s.textContent=t||"";s.className="status"+(e?" err":"")}
+function loadVoices(){voices=speechSynthesis.getVoices()}
+if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+function hasVoice(code){return voices.some(v=>v.lang.toLowerCase().startsWith(code.slice(0,2).toLowerCase()))}
+function speak(text,code){
+  if(!("speechSynthesis" in window))return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang=code;
+  const v=voices.find(v=>v.lang.toLowerCase().replace("_","-")===code.toLowerCase())||voices.find(v=>v.lang.toLowerCase().startsWith(code.slice(0,2).toLowerCase()));
+  if(v)u.voice=v;speechSynthesis.speak(u);
+}
+function hint(){
+  const a=L($("langA").value),b=L($("langB").value),miss=[];
+  [a,b].forEach(l=>{if(!hasVoice(l[2]))miss.push(l[1])});
+  $("hint").textContent=miss.length?`No spoken voice found on this device for: ${[...new Set(miss)].join(", ")}. Translations will show as large text instead.`:"";
+}
+["langA","langB"].forEach(id=>$(id).addEventListener("change",hint));setTimeout(hint,600);
+
+async function api(path,body){
+  let code=sessionStorage.getItem("uvCode")||"";
+  for(let i=0;i<2;i++){
+    if(!code){code=(prompt("Enter your staff access code")||"").trim();if(!code)throw {code:"not_granted"};sessionStorage.setItem("uvCode",code)}
+    const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json","x-access-code":code},body:JSON.stringify(body)});
+    if(r.status===401){sessionStorage.removeItem("uvCode");code="";continue}
+    if(r.status===429)throw {code:"rate_limited"};
+    if(!r.ok)throw {code:"failed"};
+    return r.json();
+  }
+  throw {code:"not_granted"};
+}
+function fail(e){status(e&&e.code==="not_granted"?"Access code missing or not accepted.":e&&e.code==="rate_limited"?"Too many requests. Wait a moment and try again.":"Request failed. Check your connection and try again.",true)}
+async function translate(side,text){
+  text=text.trim();if(!text||busy)return;
+  const from=L($("lang"+side).value),to=L($("lang"+(side==="A"?"B":"A")).value);
+  if(from[0]===to[0]){status("Choose two different languages.",true);return}
+  busy=true;status("Translating…");
+  try{
+    const r=await api("/api/translate",{text,from:from[0],to:to[0],setting:$("ctx").value});
+    const o={side,from:from[1],to:to[1],src:text,out:String(r.translation||""),back:String(r.back||""),caut:String(r.caution||""),code:to[2]};
+    last=o;addMsg(o);status("");
+    if($("auto").checked&&hasVoice(to[2]))speak(o.out,to[2]);
+  }catch(e){fail(e)}
+  busy=false;
+}
+function addMsg(o){
+  const d=document.createElement("div");d.className="msg "+o.side;
+  const s=document.createElement("div");s.className="src";s.textContent=`${o.from}: ${o.src}`;
+  const t=document.createElement("div");t.className="out";t.lang=o.code;t.textContent=o.out;
+  const b=document.createElement("div");b.className="bk";b.textContent=`Check (back in English): ${o.back}`;
+  d.append(s,t,b);
+  if(o.caut){const c=document.createElement("div");c.className="caut";c.textContent="Check this: "+o.caut;d.append(c)}
+  const bt=document.createElement("button");bt.textContent="🔊 Play";bt.style.marginTop="6px";
+  bt.onclick=()=>hasVoice(o.code)?speak(o.out,o.code):status(`No ${o.to} voice on this device. Read the text aloud or show it to the person.`,true);
+  d.append(bt);
+  $("log").prepend(d);
+}
+function listen(side){
+  if(!SR){status("This browser has no voice input. Type instead, or use Chrome or Edge.",true);return}
+  const btn=$("mic"+side);
+  if(rec){rec.stop();return}
+  const l=L($("lang"+side).value);
+  rec=new SR();rec.lang=l[2];rec.interimResults=true;rec.continuous=false;
+  let finalText="";
+  rec.onstart=()=>{btn.classList.add("on");btn.textContent="■ Listening… tap to stop";status("Listening in "+l[1])};
+  rec.onresult=e=>{let t="";for(const r of e.results){t+=r[0].transcript;if(r.isFinal)finalText=t}$("txt"+side).value=t};
+  rec.onerror=e=>{status(e.error==="language-not-supported"?`Voice input for ${l[1]} is not supported here. Type instead.`:e.error==="not-allowed"?"Microphone permission was blocked. Allow it in the browser.":e.error==="no-speech"?"I heard nothing. Try again.":"Voice input error: "+e.error,true)};
+  rec.onend=()=>{btn.classList.remove("on");btn.textContent="🎤 Tap to speak";rec=null;
+    const t=finalText||$("txt"+side).value;if(t.trim()){translate(side,t);$("txt"+side).value=""}};
+  try{rec.start()}catch(e){rec=null;status("Could not start the microphone.",true)}
+}
+["A","B"].forEach(s=>{
+  $("mic"+s).onclick=()=>listen(s);
+  $("send"+s).onclick=()=>{translate(s,$("txt"+s).value);$("txt"+s).value=""};
+  $("txt"+s).addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send"+s).click()}});
+});
+$("clear").onclick=()=>{$("log").textContent="";last=null;status("");speechSynthesis&&speechSynthesis.cancel()};
+$("simple").onclick=async()=>{
+  if(!last){status("Translate something first.",true);return}
+  status("Simplifying…");
+  try{
+    const r=await api("/api/simplify",{text:last.side==="B"?last.back:last.src});
+    const d=document.createElement("div");d.className="msg";
+    const t=document.createElement("div");t.className="out";t.textContent=String(r.text||"");
+    const s=document.createElement("div");s.className="src";s.textContent="Simple English for a sign language interpreter";
+    d.append(s,t);$("log").prepend(d);status("");
+  }catch(e){fail(e)}
+};
+</script>
+</body>
+</html>
