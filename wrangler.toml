@@ -1,0 +1,11 @@
+name = "ubuntuvoice-proxy"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Origins only (no path). Remove the localhost entry once you have tested.
+ALLOWED_ORIGINS = "https://nelly2014.github.io,http://localhost:8080"
+MODEL = "claude-sonnet-5-5"
+
+# The API key is NOT stored here. Set it with:
+#   npx wrangler secret put ANTHROPIC_API_KEY
